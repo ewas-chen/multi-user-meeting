@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package user_service;
+
+// 定义用户服务
+service UserService {
+  // 用户注册
+  rpc Register(RegisterRequest) returns (RegisterResponse) {}
+  // 用户登录
+  rpc Login(LoginRequest) returns (LoginResponse) {}
+}
+
+// 定义注册请求消息
+message RegisterRequest {
+  string username = 1;  // 用户账号，加密
+  string password = 2;  // 用户密码,加密
+}
+
+// 定义注册响应消息
+message RegisterResponse {
+  uint32 error_code = 1; // 1001，该用户已经存在
+  string error_message = 2;  // 错误信息，成功时为 success
+}
+
+// 登录请求消息，提交账号和密码
+message LoginRequest {
+  string username = 1; 
+  string password = 2;
+}
+
+// 登录响应消息
+message LoginResponse {
+  uint32 error_code = 1; // 错误码
+  // 2001 表示用户不存在，2002 表示密码错误等，可按需扩展
+  string error_message = 2;  // 错误信息，成功时为 succes
+}

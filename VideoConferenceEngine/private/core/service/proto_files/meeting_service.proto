@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package meeting_service;
+
+// 定义会议服务
+service MeetingService {
+  // 创建会议
+  rpc CreateMeeting(CreateMeetingRequest) returns (CreateMeetingResponse) {}
+  // 加入会议
+  rpc JoinMeeting(JoinMeetingRequest) returns (JoinMeetingResponse) {}
+  // 离开会议
+  rpc LeaveMeeting(LeaveMeetingRequest) returns (LeaveMeetingResponse) {}
+  // 结束会议
+  rpc EndMeeting(EndMeetingRequest) returns (EndMeetingResponse) {}
+  // 获取会议列表
+  rpc GetMeetingList(GetMeetingListRequest) returns (GetMeetingListResponse) {}
+  // 订阅会议事件（服务端流式推送）
+  rpc SubscribeMeetingEvents(SubscribeMeetingEventsRequest) returns (stream MeetingEvent) {}
+}
+
+// 用户信息
+message UserInfo {
+  uint32 clientIp = 1;  // 用户客户端 IP 地址，
+  string username = 4;  // 用户名
+}
+
+// 参与者信息（包含推拉流服务器 IP）
+message ParticipantInfo {
+  UserInfo user = 1;                            // 用户基本信息
+  uint32 pushMeetingServerIp = 2;               // 该用户的推流服务器 IP 地址（网络序）
+  uint32 pullMeetingServerIp = 3;               // 该用户的拉流服务器 IP 地址（网络序）
+}
+
+// 创建会议请求消息，注：会议相关信息需要加密传输(Base64)
+message CreateMeetingRequest {
+  UserInfo user = 1;  // 发起创建会议的用户信息，加密
+  string meetingTitle = 3;  // 会议标题
+  string meetingDescription = 4;  // 会议描述
+  int64 startTime = 5;  // 会议开始时间，使用 Unix 时间戳（秒）
+}
+
+// 创建会议响应消息
+message CreateMeetingResponse {
+  uint32 errorCode = 1;  // 可按需扩展，3001 无可用服务器，3002 机器高负载，3003 解密失败
+  string errorMessage = 2;  // 错误信息，成功时为 success
+  string meetingId = 3;  // 创建成功后返回的会议 ID，后续提供给加入会议的用户使用
+  uint32 pushMeetingServerIp = 4; // 返回的会议推流服务器 IP 地址（网络序）
+  uint32 pullMeetingServerIp = 5; // 返回的会议拉流服务器 IP 地址（网络序）
+  repeated UserInfo participants = 6; // 当前会议参与者列表
+}
+
+// 用户加入会议请求消息
+message JoinMeetingRequest {
+  UserInfo user = 1;  // 要加入会议的用户信息，加密
+  string meetingId = 2;  // 要加入的会议 ID，加密
+}
+
+// 用户加入会议响应消息
+message JoinMeetingResponse {
+  uint32 errorCode = 1;  // 错误码，1 表示成功，0 表示通用失败，可按需扩展
+  string errorMessage = 2;  // 错误信息，成功时为空
+  uint32 pushMeetingServerIp = 3; // 返回的会议推流服务器 IP 地址（网络序）
+  uint32 pullMeetingServerIp = 4; // 返回的会议拉流服务器 IP 地址（网络序）
+  string meetingTitle = 5;        // 会议标题
+  string meetingDescription = 6;  // 会议描述
+  repeated UserInfo participants = 7; // 当前会议参与者列表
+}
+
+// 用户离开会议请求消息
+message LeaveMeetingRequest {
+  UserInfo user = 1;     // 要离开会议的用户信息
+  string meetingId = 2;  // 要离开的会议 ID
+}
+
+// 用户离开会议响应消息
+message LeaveMeetingResponse {
+  uint32 errorCode = 1;     // 错误码
+  string errorMessage = 2;  // 错误信息，成功时为 success
+  repeated UserInfo participants = 3; // 当前会议参与者列表
+}
+
+// 结束会议请求消息
+message EndMeetingRequest {
+  UserInfo user = 1;     // 要结束会议的用户信息（必须是会议创建者）
+  string meetingId = 2;  // 要结束的会议 ID
+}
+
+// 结束会议响应消息
+message EndMeetingResponse {
+  uint32 errorCode = 1;     // 错误码
+  string errorMessage = 2;  // 错误信息，成功时为 success
+  repeated UserInfo participants = 3; // 当前会议参与者列表
+}
+
+// 获取会议列表请求消息
+message GetMeetingListRequest {
+  UserInfo user = 1;     // 用户信息
+  int32 pageSize = 2;    // 每页显示的会议数量
+  int32 pageNumber = 3;  // 页码，从1开始
+}
+
+// 会议信息
+message MeetingInfo {
+  string meetingId = 1;         // 会议ID
+  string meetingTitle = 2;      // 会议标题
+  string meetingDescription = 3; // 会议描述
+  int64 startTime = 4;          // 开始时间
+  int64 duration = 5;           // 预计持续时间
+  UserInfo creator = 6;         // 创建者信息
+  int32 participantCount = 7;   // 参与人数
+  bool isActive = 8;            // 会议是否正在进行
+}
+
+// 会议事件类型
+enum MeetingEventType {
+  EVENT_UNKNOWN = 0;      // 未知事件
+  EVENT_USER_JOINED = 1;  // 用户加入会议
+  EVENT_USER_LEFT = 2;    // 用户离开会议
+  EVENT_MEETING_ENDED = 3; // 会议结束
+}
+
+// 会议事件推送消息
+message MeetingEvent {
+  MeetingEventType event_type = 1;            // 事件类型
+  string meeting_id = 2;                      // 会议ID
+  UserInfo trigger_user = 3;                  // 触发事件的用户
+  repeated ParticipantInfo current_participants = 4; // 当前所有参与者列表（含推拉流 IP，全量推送）
+  string message = 5;                         // 事件描述信息
+}
+
+// 订阅会议事件请求
+message SubscribeMeetingEventsRequest {
+  UserInfo user = 1;        // 订阅用户信息
+  string meeting_id = 2;    // 订阅的会议ID
+}
+
+// 获取会议列表响应消息
+message GetMeetingListResponse {
+  uint32 errorCode = 1;     // 错误码
+  string errorMessage = 2;  // 错误信息，成功时为 success
+  repeated MeetingInfo meetings = 3; // 会议列表
+  int32 totalCount = 4;     // 会议总数
+  int32 totalPages = 5;     // 总页数
+}
