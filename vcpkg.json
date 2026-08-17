@@ -1,0 +1,12 @@
+{
+  "dependencies": [
+    "miniaudio",
+    {
+      "name": "glad",
+      "features": [
+        "gl-api-46",
+        "loader"
+      ]
+    }
+  ]
+}

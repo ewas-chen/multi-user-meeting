@@ -1,0 +1,43 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "VCE Qt Client Debug",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_TOOLCHAIN_FILE": "$env{HOME}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_TARGET_TRIPLET": "x64-linux",
+        "VCPKG_MANIFEST_MODE": "OFF",
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed",
+
+        "CMAKE_PREFIX_PATH": "/home/ewas/software/Qt/6.5.3/gcc_64;/home/ewas/vcpkg/installed/x64-linux",
+
+        "BUILD_QT_CLIENT": "ON",
+        "BUILD_VCE_TESTS": "OFF",
+        "BUILD_VCE_TEST_SERVER": "ON",
+
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "displayName": "Build VCE Qt Client",
+      "configurePreset": "default",
+      "targets": [
+        "vce_meeting_client",
+        "vce_test_server"
+      ],
+      "jobs": 4
+    }
+  ]
+}
